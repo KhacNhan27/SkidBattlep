@@ -1,286 +1,174 @@
-# VNCRAFT.ASIA
-## Infrastructure Setup Guide
-### TCPShield · VPS Singapore Relay · Dedicated Server HCM
+# SokiBattlepass
+
+**Plugin Minecraft 1.21.1** | Paper/Folia |
+
+Hệ thống mời bạn bè, quà comeback, và sự kiện **Chung Sức** cho server MineVN EconomySMP.
 
 ---
 
-# 📋 Mục đích
+## 📋 Tính Năng
 
-Hướng dẫn thiết lập hệ thống relay Singapore nhằm:
+### 1. Hệ Thống Mời Bạn Bè (Referral)
 
-- Giảm ping Minecraft từ ~120–140ms xuống còn ~40–80ms
-- Ẩn IP thật máy chủ vật lý HCM
-- Kết hợp TCPShield chống DDoS
-- Có hệ thống failover AS1 → AS2
+Người chơi tạo mã mời để giới thiệu bạn bè mới vào server.
 
----
+| Lệnh | Alias | Mô tả |
+|------|-------|-------|
+| `/invite` | `/moi` | Tạo mã mời của bạn |
+| `/invite list` | | Xem các mã đang hoạt động |
+| `/invite top` | | Bảng xếp hạng tháng hiện tại |
+| `/invite top last-month` | | BXH tháng trước |
+| `/redeem <mã>` | `/nhanma <mã>` | Nhập mã giới thiệu |
 
-# 1. TỔNG QUAN HỆ THỐNG
+#### Cách hoạt động
+1. Người chơi dùng `/invite` → nhận mã mời riêng (VD: `ZIRV3K7Q`)
+2. Bạn bè mới dùng `/redeem ZIRV3K7Q` **trong vòng 24 giờ đầu**
+3. Người được mời chơi đủ **60 phút** → cả hai nhận thưởng
 
-## Luồng hiện tại (ping cao)
+#### Thưởng người được mời
+- 100 BattlePass Points
+- 250 Shards
+- 1 Common Key
 
-```text
-Player
-  │
-  ▼
-TCPShield
-  │
-  ▼
-Máy chủ HCM
-(ping 120–140ms)
-```
+#### Thưởng người mời
+- 200 BattlePass Points
+- 100 Shards
+- Lệnh extra tùy chỉnh trong config
+- Tag `referrer` tạm thời (24h, có thể tắt)
 
-## Luồng sau khi setup relay
-
-```text
-Player
-  │
-  ▼
-TCPShield
-  │
-  ├─▶ as1.vncraft.asia (Primary)
-  │
-  └─▶ as2.vncraft.asia (Backup)
-            │
-            ▼
-      Máy chủ HCM
-      ping ~40–80ms
-```
+#### Top Referral Hàng Tháng
+BXH reset đầu mỗi tháng. Phần thưởng top:
+- **Top 1:** MVP 30 ngày + 5000 BP Points
+- **Top 2:** VIP+ 14 ngày + 3000 BP Points
+- **Top 3:** VIP 7 ngày + 1500 BP Points
 
 ---
 
-# 2. YÊU CẦU
+### 2. Quà Comeback
 
-| Thành phần | Ghi chú |
-|---|---|
-| TCPShield | Gói $25+ |
-| VPS Singapore #1 | Ubuntu 22.04 |
-| VPS Singapore #2 | Ubuntu 22.04 |
-| Máy chủ HCM | Velocity proxy |
-| Domain | vncraft.asia |
+Người chơi vắng **≥ 15 ngày** nhận quà khi quay lại.
 
----
+| Lệnh | Mô tả |
+|------|-------|
+| `/comeback` | Nhận quà comeback |
 
-# 3. DNS
-
-## A Record
-
-| Type | Name | Value |
-|---|---|---|
-| A | as1 | IP_AS1 |
-| A | as2 | IP_AS2 |
-
-## SRV Record
-
-| Type | Name | Priority | Weight | Port | Target |
-|---|---|---|---|---|---|
-| SRV | _minecraft._tcp.vncraft.asia | 0 | 5 | 25565 | as1.vncraft.asia |
-| SRV | _minecraft._tcp.vncraft.asia | 10 | 5 | 25565 | as2.vncraft.asia |
+- Thông báo tự động khi đăng nhập nếu đủ điều kiện
+- Gói quà mặc định: 500 Shards + 3 Crimson + 2 Prime + 3 Gold + 2 Money Crates + 200 BP Points
+- Tùy chỉnh trong `config.yml` > `comeback.rewards.extra-commands`
 
 ---
 
-# 4. SETUP VPS SINGAPORE
+### 3. Sự Kiện Chung Sức ⚡
 
-## SSH vào VPS
+Mỗi người chơi có một **thanh điểm cá nhân** với 3 mốc thưởng (300 / 600 / 900 điểm).
 
-```bash
-ssh root@IP_AS1
-```
+| Lệnh | Mô tả |
+|------|-------|
+| `/chunsuc` | Mở menu Chung Sức |
 
----
+#### Cách tích điểm
 
-## Update hệ thống
+| Hành động | Điểm | Giới hạn |
+|-----------|------|----------|
+| Nhập mã của người khác | +15 điểm | **Tối đa 2 lượt/ngày** |
+| Người khác nhập mã của bạn | +10 điểm | Không giới hạn |
 
-```bash
-apt update && apt upgrade -y
-```
+**Ví dụ:**
+- Player A nhập mã của Player B → A nhận +15 điểm, B nhận +10 điểm
+- Nếu A đã dùng 2 lượt hôm nay → A không nhận điểm thêm, nhưng B **vẫn nhận** +10 điểm
 
----
-
-## Bật IP forwarding
-
-```bash
-echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
-echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
-
-sysctl -p
-```
+#### Mốc thưởng
+Mỗi mốc nhận một lần. Tích lũy điểm để mở khóa:
+- **300 điểm** → Thưởng nhỏ (config tùy chỉnh)
+- **600 điểm** → Thưởng vừa
+- **900 điểm** → Thưởng lớn
 
 ---
 
-## iptables DNAT
+## ⚙️ Cài Đặt
 
-> Thay `IP_HCM_REAL` bằng IP thật máy chủ HCM
+### Yêu cầu
+- Paper hoặc Folia **1.21.1**
+- Java 17+
 
-```bash
-iptables -t nat -F
-iptables -F FORWARD
+### Cài đặt
+1. Tải `SokiBattlepass.jar` vào thư mục `plugins/`
+2. Khởi động server
+3. Chỉnh sửa `plugins/SokiBattlepass/config.yml`
+4. Dùng `/sokibp reload`
 
-iptables -t nat -A PREROUTING -p tcp --dport 25565 -j DNAT \
-  --to-destination IP_HCM_REAL:25565
-
-iptables -t nat -A POSTROUTING -d IP_HCM_REAL -j MASQUERADE
-
-iptables -A FORWARD -p tcp -d IP_HCM_REAL --dport 25565 -j ACCEPT
-iptables -A FORWARD -p tcp -s IP_HCM_REAL --sport 25565 -j ACCEPT
+### Database
+Mặc định dùng **SQLite** (`data.db`). Chuyển sang MySQL trong config:
+```yaml
+database:
+  type: mysql
+  mysql:
+    host: localhost
+    port: 3306
+    database: sokibp
+    username: root
+    password: yourpassword
 ```
 
 ---
 
-## Lưu iptables
+## 🌐 Ngôn Ngữ
 
-```bash
-apt install iptables-persistent -y
+Hỗ trợ **Tiếng Việt** và **Tiếng Anh**.
 
-netfilter-persistent save
+```yaml
+# config.yml
+language: vi   # hoặc en
+```
+
+Đổi ngôn ngữ runtime: `/sokibp setlang vi`
+
+File ngôn ngữ: `messages_vi.yml` / `messages_en.yml` — tùy chỉnh tất cả tin nhắn với MiniMessage format.
+
+---
+
+## 🛠️ Lệnh Admin
+
+| Lệnh | Mô tả |
+|------|-------|
+| `/sokibp reload` | Tải lại config và messages |
+| `/sokibp setlang <vi\|en>` | Đổi ngôn ngữ |
+| `/sokibp give <player> <points>` | Thêm điểm Chung Sức |
+| `/sokibp reset <player>` | Reset toàn bộ dữ liệu người chơi |
+
+**Permission:** `sokibp.admin` (mặc định: OP)
+
+---
+
+## 📜 Tất Cả Permissions
+
+| Permission | Mô tả | Mặc định |
+|-----------|-------|---------|
+| `sokibp.admin` | Lệnh admin | OP |
+| `sokibp.invite` | Dùng /invite | true |
+| `sokibp.redeem` | Dùng /redeem | true |
+| `sokibp.comeback` | Dùng /comeback | true |
+| `sokibp.chunsuc` | Dùng /chunsuc | true |
+
+---
+
+## 🔧 Tùy Chỉnh Lệnh Thưởng
+
+Plugin dùng **console commands** để trao thưởng, giúp tương thích với mọi economy plugin:
+
+```yaml
+# Lệnh cộng BP Points (%player% và %amount% được thay tự động)
+battlepass:
+  add-points-command: "bp addpoints %player% %amount%"
+
+# Lệnh thưởng thêm cho người mời
+referral:
+  inviter-rewards:
+    extra-commands:
+      - "eco give %player% 1000"
+      - "crates give %player% rare 1"
 ```
 
 ---
 
-## Firewall
-
-```bash
-ufw allow 22/tcp
-ufw allow 25565/tcp
-
-ufw enable
-```
-
----
-
-# 5. MÁY CHỦ HCM
-
-## Whitelist relay
-
-```bash
-iptables -I INPUT -p tcp --dport 25565 -s IP_AS1 -j ACCEPT
-iptables -I INPUT -p tcp --dport 25565 -s IP_AS2 -j ACCEPT
-
-iptables -A INPUT -p tcp --dport 25565 -j DROP
-```
-
----
-
-## Velocity config
-
-```toml
-bind = "0.0.0.0:25565"
-
-[advanced]
-proxy-protocol = true
-```
-
----
-
-# 6. TCPSHIELD
-
-## Backend
-
-| Field | Value |
-|---|---|
-| Backend IP | IP_HCM_REAL |
-| Port | 25565 |
-| Proxy Protocol | ON |
-
----
-
-## TCPShield IP Ranges
-
-```bash
-curl https://tcpshield.com/v4-ranges
-```
-
----
-
-# 7. TEST
-
-## DNS
-
-```bash
-nslookup as1.vncraft.asia
-
-nslookup -type=SRV _minecraft._tcp.vncraft.asia
-```
-
----
-
-## Port test
-
-```bash
-telnet IP_AS1 25565
-```
-
----
-
-## Minecraft
-
-- Add server:
-  `vncraft.asia`
-
-- Ping kỳ vọng:
-  `40–80ms`
-
----
-
-# 8. FAILOVER
-
-| Relay | Priority |
-|---|---|
-| as1 | 0 |
-| as2 | 10 |
-
-Minecraft sẽ tự dùng AS2 nếu AS1 chết.
-
----
-
-# 9. SCRIPT AUTO SETUP
-
-```bash
-#!/bin/bash
-
-IP_HCM_REAL="xxx.xxx.xxx.xxx"
-
-apt update && apt upgrade -y
-
-echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
-sysctl -p
-
-iptables -t nat -A PREROUTING -p tcp --dport 25565 -j DNAT \
-  --to-destination $IP_HCM_REAL:25565
-
-iptables -t nat -A POSTROUTING -d $IP_HCM_REAL -j MASQUERADE
-
-iptables -A FORWARD -p tcp -d $IP_HCM_REAL --dport 25565 -j ACCEPT
-iptables -A FORWARD -p tcp -s $IP_HCM_REAL --sport 25565 -j ACCEPT
-
-apt install iptables-persistent -y
-netfilter-persistent save
-
-ufw allow 22/tcp
-ufw allow 25565/tcp
-ufw --force enable
-
-echo "DONE!"
-```
-
----
-
-# 10. KẾT QUẢ KỲ VỌNG
-
-| Chỉ số | Trước | Sau |
-|---|---|---|
-| Ping VN | 120–140ms | 40–80ms |
-| Lộ IP HCM | Có thể | Không |
-| DDoS Protection | Có | Có |
-| Failover | Không | Có |
-
----
-
-# ✅ HOÀN TẤT
-
-Sau khi setup:
-
-- Người chơi VN ping thấp hơn đáng kể
-- IP thật HCM được ẩn hoàn toàn
-- Có backup relay AS2
-- TCPShield tiếp tục chống DDoS
+*Plugin được viết cho SokiMC EconomySMP — v1*
