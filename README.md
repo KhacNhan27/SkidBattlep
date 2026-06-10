@@ -2,7 +2,7 @@
 
 **Plugin Minecraft 1.21.1** | Paper/Folia |
 
-Hệ thống mời bạn bè, quà comeback, và sự kiện **Chung Sức** cho server MineVN EconomySMP.
+Hệ thống mời bạn bè, quà comeback, và sự kiện **Chung Sức** cho server SokiMC EconomySMP.
 
 ---
 
@@ -64,7 +64,7 @@ Mỗi người chơi có một **thanh điểm cá nhân** với 3 mốc thưở
 
 | Lệnh | Mô tả |
 |------|-------|
-| `/chunsuc` | Mở menu Chung Sức |
+| `/chungsuc` | Mở menu Chung Sức |
 
 #### Cách tích điểm
 
@@ -148,7 +148,7 @@ File ngôn ngữ: `messages_vi.yml` / `messages_en.yml` — tùy chỉnh tất c
 | `sokibp.invite` | Dùng /invite | true |
 | `sokibp.redeem` | Dùng /redeem | true |
 | `sokibp.comeback` | Dùng /comeback | true |
-| `sokibp.chunsuc` | Dùng /chunsuc | true |
+| `sokibp.chungsuc` | Dùng /chungsuc | true |
 
 ---
 
